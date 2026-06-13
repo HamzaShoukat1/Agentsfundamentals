@@ -1,5 +1,5 @@
 import { evaluate } from "@lmnr-ai/lmnr";
-import { shellTools } from "../src/agent/tools/index.ts";
+// import { shellTools } from "../src/agent/tools/index.ts";
 import {
   toolsSelected,
   toolsAvoided,
@@ -23,7 +23,7 @@ import { singleTurnExecutor } from "./executors.ts";
 
 // Executor that runs single-turn tool selection
 const executor = async (data: EvalData) => {
-  return singleTurnExecutor(data, shellTools);
+  return singleTurnExecutor(data);
 };
 
 // Run the evaluation
@@ -48,7 +48,7 @@ evaluate({
     },
   },
   config: {
-    projectApiKey: process.env.LMNR_API_KEY,
+    projectApiKey: process.env.LMNR_PROJECT_API_KEY,
   },
   groupName: "shell-tools-selection",
 });

@@ -1,9 +1,8 @@
-import { openai } from "@ai-sdk/openai";
-
+import { google } from "@ai-sdk/google"
 /**
  * OpenAI native web search tool
  *
  * This is a provider tool - execution is handled by OpenAI, not our tool executor.
  * Results are returned directly in the model's response stream.
  */
-export const webSearch = openai.tools.webSearch({});
+export const webSearch = google.tools.googleSearch({});

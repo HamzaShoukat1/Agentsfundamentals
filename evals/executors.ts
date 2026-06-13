@@ -1,5 +1,15 @@
-import { generateText, stepCountIs, type ModelMessage, type ToolSet } from "ai";
-import { openai } from "@ai-sdk/openai";
+import "dotenv/config";
+
+import {
+  generateText,
+  stepCountIs,
+  tool,
+  type ModelMessage,
+  type ToolSet,
+} from "ai";
+
+import { google } from "@ai-sdk/google";
+import z from "zod";
 
 import { SYSTEM_PROMPT } from "../src/agent/system/prompt.ts";
 import type {
@@ -8,75 +18,131 @@ import type {
   MultiTurnEvalData,
   MultiTurnResult,
 } from "./types.ts";
+
 import { buildMessages, buildMockedTools } from "./utils.ts";
 
+/**
+ * ------------------------
+ * TOOL DEFINITIONS
+ * ------------------------
+ */
+const TOOL_DEFINATIONS: Record<string, any> = {
+  readFile: {
+    description: "Read the content of a file at specified path",
+    parameters: z.object({
+      path: z.string().describe("Path of the file to read"),
+    }),
+  },
+
+  writeFile: {
+    description: "Write content to a file at specified path",
+    parameters: z.object({
+      path: z.string().describe("Path of the file to write"),
+      content: z.string().describe("Content to write to the file"),
+    }),
+  },
+
+  listFiles: {
+    description: "List all files in a directory",
+    parameters: z.object({
+      path: z.string().describe("Path of directory"),
+    }),
+  },
+
+  deleteFile: {
+    description: "Delete a file at specified path",
+    parameters: z.object({
+      path: z.string().describe("Path of file to delete"),
+    }),
+  },
+
+  runCommand: {
+    description: "Execute shell command",
+    parameters: z.object({
+      command: z.string().describe("Shell command to run"),
+    }),
+  },
+};
+
+/**
+ * ------------------------
+ * SINGLE TURN EVAL
+ * ------------------------
+ */
+//Did model choose correct tool?
 export async function singleTurnExecutor(
   data: EvalData,
-  availableTools: ToolSet,
 ): Promise<SingleTurnResult> {
   const messages = buildMessages(data);
 
-  // Filter to only tools specified in data
   const tools: ToolSet = {};
+
   for (const toolName of data.tools) {
-    if (availableTools[toolName]) {
-      tools[toolName] = availableTools[toolName];
-    }
+    const def = TOOL_DEFINATIONS[toolName]; // ✅ FIXED
+
+    if (!def) continue;
+
+    tools[toolName] = tool({
+      description: def.description,
+      inputSchema: def.parameters,
+    });
   }
 
   const result = await generateText({
-    model: openai(data.config?.model ?? "gpt-5-mini"),
+    model: google(data.config?.model ?? "gemini-2.5-flash"), // ✅ FIXED
     messages,
     tools,
-    stopWhen: stepCountIs(1), // Single step - just get tool selection
+    stopWhen: stepCountIs(1),
     temperature: data.config?.temperature ?? undefined,
   });
 
-  // Extract tool calls from the result
   const toolCalls = (result.toolCalls ?? []).map((tc) => ({
     toolName: tc.toolName,
     args: "args" in tc ? tc.args : {},
   }));
 
-  const toolNames = toolCalls.map((tc) => tc.toolName);
-
   return {
     toolCalls,
-    toolNames,
-    selectedAny: toolNames.length > 0,
+    toolNames: toolCalls.map((t) => t.toolName),
+    selectedAny: toolCalls.length > 0,
   };
-}
+};
 
 /**
- * Multi-turn executor with mocked tools.
- * Runs a complete agent loop with tools returning fixed values.
+ * 
+ * ------------------------
+ * MULTI TURN EVAL (MOCKS)
+ * ------------------------
  */
+//Can model finish the whole task?
 export async function multiTurnWithMocks(
   data: MultiTurnEvalData,
 ): Promise<MultiTurnResult> {
   const tools = buildMockedTools(data.mockTools);
 
-  // Build messages from either prompt or pre-filled history
-  const messages: ModelMessage[] = data.messages ?? [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: data.prompt! },
-  ];
+  const messages: ModelMessage[] =
+    data.messages ?? [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: data.prompt! },
+    ];
 
   const result = await generateText({
-    model: openai(data.config?.model ?? "gpt-5-mini"),
+    model: google(data.config?.model ?? "gemini-1.5-flash"), // ✅ FIXED
     messages,
     tools,
     stopWhen: stepCountIs(data.config?.maxSteps ?? 20),
   });
 
-  // Extract all tool calls in order from steps
   const allToolCalls: string[] = [];
+
   const steps = result.steps.map((step) => {
     const stepToolCalls = (step.toolCalls ?? []).map((tc) => {
       allToolCalls.push(tc.toolName);
+
       return {
         toolName: tc.toolName,
         args: "args" in tc ? tc.args : {},
+
       };
     });
 
@@ -86,19 +152,16 @@ export async function multiTurnWithMocks(
     }));
 
     return {
-      toolCalls: stepToolCalls.length > 0 ? stepToolCalls : undefined,
-      toolResults: stepToolResults.length > 0 ? stepToolResults : undefined,
+      toolCalls: stepToolCalls.length ? stepToolCalls : undefined,
+      toolResults: stepToolResults.length ? stepToolResults : undefined,
       text: step.text || undefined,
     };
   });
 
-  // Extract unique tools used
-  const toolsUsed = [...new Set(allToolCalls)];
-
   return {
     text: result.text,
     steps,
-    toolsUsed,
+    toolsUsed: [...new Set(allToolCalls)],
     toolCallOrder: allToolCalls,
   };
-}
+};

@@ -1,5 +1,7 @@
+import "dotenv/config";
+
 import { evaluate } from "@lmnr-ai/lmnr";
-import { fileTools } from "../src/agent/tools/index.ts";
+// import { fileTools } from "../src/agent/tools/index.ts";
 import {
   toolsSelected,
   toolsAvoided,
@@ -23,7 +25,7 @@ import { singleTurnExecutor } from "./executors.ts";
 
 // Executor that runs single-turn tool selection
 const executor = async (data: EvalData) => {
-  return singleTurnExecutor(data, fileTools);
+  return singleTurnExecutor(data);
 };
 
 // Run the evaluation
@@ -47,8 +49,9 @@ evaluate({
       return toolSelectionScore(output, target);
     },
   },
+
   config: {
-    projectApiKey: process.env.LMNR_API_KEY,
+    projectApiKey: process.env.LMNR_PROJECT_API_KEY,
   },
   groupName: "file-tools-selection",
 });

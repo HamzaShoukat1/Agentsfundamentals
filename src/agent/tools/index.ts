@@ -6,13 +6,13 @@ import { getDateTime } from "./dateTine.ts";
 
 // All tools combined for the agent
 export const tools = {
-  readFile,
-  writeFile,
-  listFiles,
-  deleteFile,
-  runCommand,
-  executeCode,
-  webSearch,
+  // readFile,
+  // writeFile,
+  // listFiles,
+  // deleteFile,
+  // runCommand,
+  // executeCode,
+  // webSearch,
   getDateTime,
 };
 // Export individual tools for selective use in evals

@@ -12,6 +12,8 @@
       "description": "Package installation request - should use runCommand"
     }
   },
+
+  
   {
     "data": {
       "prompt": "Execute the test suite with npm test",

@@ -1,3 +1,5 @@
+
+import "dotenv/config";
 import { generateObject } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
@@ -119,11 +121,11 @@ export async function llmJudge(
     model: openai("gpt-5.1"),
     schema: judgeSchema,
     schemaName: "evaluation",
-    providerOptions: {
-      openai: {
-        reasoningEffort: "high",
-      },
-    },
+    // providerOptions: {
+    //   openai: {
+    //     reasoningEffort: "high",
+    //   },
+    // },
     schemaDescription: "Evaluation of an AI agent response",
     messages: [
       {
