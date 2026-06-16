@@ -28,7 +28,6 @@ const executor = async (data: EvalData) => {
   return singleTurnExecutor(data);
 };
 
-// Run the evaluation
 evaluate({
   data: dataset as Array<{ data: EvalData; target: EvalTarget }>,
   executor,

@@ -127,7 +127,7 @@ export async function multiTurnWithMocks(
     ];
 
   const result = await generateText({
-    model: google(data.config?.model ?? "gemini-1.5-flash"), // ✅ FIXED
+    model: google(data.config?.model ?? "gemini-2.5-flash"), // ✅ FIXED
     messages,
     tools,
     stopWhen: stepCountIs(data.config?.maxSteps ?? 20),

@@ -4,21 +4,22 @@ import type { ModelLimits } from "../../types.ts";
  * Default threshold for context window usage (80%)
  */
 export const DEFAULT_THRESHOLD = 0.8;
-
+const MODEL_NAME = "gemini-2.5-flash";
+const MINI_MODEL_NAME = "gemini-2.0-mini";
 /**
  * Model limits registry
  * Currently only includes GPT-5 models
  */
 const MODEL_LIMITS: Record<string, ModelLimits> = {
-  "gpt-5": {
+  [MODEL_NAME]: {
     inputLimit: 272000,
     outputLimit: 128000,
     contextWindow: 400000,
   },
-  "gpt-5-mini": {
+  [MINI_MODEL_NAME]: {
     inputLimit: 272000,
     outputLimit: 128000,
-    contextWindow: 400000,
+    contextWindow: 100000,
   },
 };
 
@@ -28,7 +29,7 @@ const MODEL_LIMITS: Record<string, ModelLimits> = {
 const DEFAULT_LIMITS: ModelLimits = {
   inputLimit: 128000,
   outputLimit: 16000,
-  contextWindow: 128000,
+  contextWindow: 900000,
 };
 
 /**
@@ -43,8 +44,8 @@ export function getModelLimits(model: string): ModelLimits {
   }
 
   // Check for gpt-5 variants
-  if (model.startsWith("gpt-5")) {
-    return MODEL_LIMITS["gpt-5"];
+  if (model.startsWith(MODEL_NAME)) {
+    return MODEL_LIMITS[MODEL_NAME];
   }
 
   return DEFAULT_LIMITS;

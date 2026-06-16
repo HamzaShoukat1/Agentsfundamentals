@@ -3,6 +3,7 @@ import "dotenv/config";
 import { streamText, type ModelMessage } from "ai";
 import { google } from "@ai-sdk/google";
 import type { AgentCallbacks, ToolCallInfo } from "../types.ts";
+import {estimateMessagesTokens,getModelLimits,isOverThreshold,calculateUsagePercentage,DEFAULT_THRESHOLD,compactConversation} from "./context/index.ts"
 
 import { SYSTEM_PROMPT } from "./system/prompt.ts";
 import { executeTool } from "./executeTool.ts";
@@ -40,12 +41,23 @@ export async function runAgent(
   conversationHistory: ModelMessage[],
   callbacks: AgentCallbacks,
 ): Promise<ModelMessage[]> {
+  const modelLimits = getModelLimits("gemini-2.5-flash");
+
   const workingHistory = filterCompatibleMessages(conversationHistory);
 
-  const messages: ModelMessage[] = [
+  let  messages: ModelMessage[] = [
     ...workingHistory,
     { role: "user", content: userMessage },
   ];
+
+  const precheckMessagesTokens = estimateMessagesTokens(messages);
+
+  if(isOverThreshold(precheckMessagesTokens.total,modelLimits.contextWindow)){
+
+    messages = await compactConversation(workingHistory,MODEL_INSTANCE);
+    
+
+  }
 
   let FullResponse = "";
 
@@ -64,6 +76,20 @@ export async function runAgent(
         tracer: getTracer(),
       },
     });
+    const reportTokensUsage = ()=> {
+      if(callbacks.onTokenUsage){
+        const usage = precheckMessagesTokens
+        callbacks.onTokenUsage({
+          inputTokens: usage.input,
+          outputTokens: usage.output,
+          totalTokens: usage.total,
+          contextWindow:modelLimits.contextWindow,
+          threshold: DEFAULT_THRESHOLD,
+          percentage:calculateUsagePercentage(usage.total,modelLimits.contextWindow)
+        })
+      }
+    }
+
     console.log("TOOLS SENT TO MODEL:", Object.keys(tools));
 
     const toolCalls: ToolCallInfo[] = [];
@@ -123,6 +149,7 @@ export async function runAgent(
     // Add assistant message first
     const responseMessage = await result.response;
     messages.push(...responseMessage.messages);
+    reportTokensUsage()
 
     // If no tools → exit loop
     if (finishReason !== "tool-calls" || toolCalls.length === 0) {
@@ -148,10 +175,11 @@ export async function runAgent(
           },
         ],
       } as any);
+      reportTokensUsage()
     }
 
     callbacks.onComplete?.(FullResponse);
-  }
+  };
 
   return messages
 }

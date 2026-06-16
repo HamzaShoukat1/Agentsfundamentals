@@ -34,7 +34,7 @@ export function extractMessageText(message: ModelMessage): string {
         return JSON.stringify(part);
       })
       .join(" ");
-  }
+  };
 
   return JSON.stringify(message.content);
 }

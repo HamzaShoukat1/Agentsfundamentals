@@ -7,7 +7,7 @@ import shell from "shelljs";
  */
 export const runCommand = tool({
   description:
-    "Execute a shell command and return its output. Use this for system operations, running scripts, or interacting with the operating system.",
+    "Execute a shell or terminal  command and return its output. Use this for system operations, running scripts, or interacting with the operating system.",
   inputSchema: z.object({
     command: z.string().describe("The shell command to execute"),
   }),

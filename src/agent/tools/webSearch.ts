@@ -1,8 +1,22 @@
 import { google } from "@ai-sdk/google"
-/**
- * OpenAI native web search tool
- *
- * This is a provider tool - execution is handled by OpenAI, not our tool executor.
- * Results are returned directly in the model's response stream.
- */
+import { GoogleGenAI } from "@google/genai";
+
+
+
+
+// const ModelName = "gemini-2.5-flash";
+// const ai = new GoogleGenAI({})
+
+// const groundingTool  = {
+//     googleSearch:{}
+// }
+// const config = {
+//     tools:[groundingTool]
+// };
+// export const webSearch = await ai.models.generateContent({
+//     model:ModelName,
+//     contents:"What is the capital of France?",
+//     config
+// })
+
 export const webSearch = google.tools.googleSearch({});

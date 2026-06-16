@@ -1,7 +1,7 @@
 import { tool } from "ai";
 import { z } from "zod";
 import fs from "fs/promises";
-import path from "path";
+import nodepath from "path";
 
 /**
  * Read file contents
@@ -45,7 +45,7 @@ export const writeFile = tool({
   }) => {
     try {
       // Create parent directories if they don't exist
-      const dir = path.dirname(filePath);
+      const dir = nodepath.dirname(filePath);
       await fs.mkdir(dir, { recursive: true });
 
       await fs.writeFile(filePath, content, "utf-8");

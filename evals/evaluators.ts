@@ -10,6 +10,10 @@ import type {
   MultiTurnTarget,
   MultiTurnResult,
 } from "./types.ts";
+import { google } from "@ai-sdk/google";
+
+const MODEL_INSTANCE = google("gemini-2.5-flash");
+
 
 export function toolsSelected(
   output: SingleTurnResult | MultiTurnResult,
@@ -118,9 +122,10 @@ export async function llmJudge(
   target: MultiTurnTarget,
 ): Promise<number> {
   const result = await generateObject({
-    model: openai("gpt-5.1"),
+    model: MODEL_INSTANCE,
     schema: judgeSchema,
     schemaName: "evaluation",
+    temperature: 0.2,
     // providerOptions: {
     //   openai: {
     //     reasoningEffort: "high",
