@@ -3,7 +3,7 @@ import "dotenv/config";
 import { streamText, type ModelMessage } from "ai";
 import { google } from "@ai-sdk/google";
 import type { AgentCallbacks, ToolCallInfo } from "../types.ts";
-import {estimateMessagesTokens,getModelLimits,isOverThreshold,calculateUsagePercentage,DEFAULT_THRESHOLD,compactConversation} from "./context/index.ts"
+import { estimateMessagesTokens, getModelLimits, isOverThreshold, calculateUsagePercentage, DEFAULT_THRESHOLD, compactConversation } from "./context/index.ts"
 
 import { SYSTEM_PROMPT } from "./system/prompt.ts";
 import { executeTool } from "./executeTool.ts";
@@ -45,17 +45,17 @@ export async function runAgent(
 
   const workingHistory = filterCompatibleMessages(conversationHistory);
 
-  let  messages: ModelMessage[] = [
+  let messages: ModelMessage[] = [
     ...workingHistory,
     { role: "user", content: userMessage },
   ];
 
   const precheckMessagesTokens = estimateMessagesTokens(messages);
 
-  if(isOverThreshold(precheckMessagesTokens.total,modelLimits.contextWindow)){
+  if (isOverThreshold(precheckMessagesTokens.total, modelLimits.contextWindow)) {
 
-    messages = await compactConversation(workingHistory,MODEL_INSTANCE);
-    
+    messages = await compactConversation(workingHistory, MODEL_INSTANCE);
+
 
   }
 
@@ -76,16 +76,16 @@ export async function runAgent(
         tracer: getTracer(),
       },
     });
-    const reportTokensUsage = ()=> {
-      if(callbacks.onTokenUsage){
+    const reportTokensUsage = () => {
+      if (callbacks.onTokenUsage) {
         const usage = precheckMessagesTokens
         callbacks.onTokenUsage({
           inputTokens: usage.input,
           outputTokens: usage.output,
           totalTokens: usage.total,
-          contextWindow:modelLimits.contextWindow,
+          contextWindow: modelLimits.contextWindow,
           threshold: DEFAULT_THRESHOLD,
-          percentage:calculateUsagePercentage(usage.total,modelLimits.contextWindow)
+          percentage: calculateUsagePercentage(usage.total, modelLimits.contextWindow)
         })
       }
     }
@@ -159,7 +159,17 @@ export async function runAgent(
     // =========================
     // EXECUTE TOOLS
     // =========================
+    //human approval
+    let rejected = false
+
     for (const call of toolCalls) {
+      const approved = await callbacks.onToolApproval(call.toolName, call.args)
+      if(!approved) {
+        rejected = true
+        break 
+      };
+
+
       const toolResult = await executeTool(call.toolName, call.args);
 
       callbacks.onToolCallEnd?.(call.toolName, toolResult);
@@ -176,7 +186,12 @@ export async function runAgent(
         ],
       } as any);
       reportTokensUsage()
+    };
+
+    if(rejected) {
+      break
     }
+
 
     callbacks.onComplete?.(FullResponse);
   };
